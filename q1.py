@@ -9,7 +9,7 @@ from utils.is_covered import is_covered
 
 # ---- 常量（题面给定/默认） ----
 SPEED_MISSILE = 300.0      # 导弹速率 (m/s)
-INTERVAL = 0.03            # 仿真步长 (s)
+INTERVAL = 0.01            # 仿真步长 (s)
 G = 9.80                   # 重力加速度 (m/s^2)
 SINK_SPEED = 3.0           # 云团下沉速度 (m/s)
 CLOUD_EFFECTIVE = 20.0     # 起爆后有效遮蔽时长 (s)

@@ -37,9 +37,11 @@ def _sample_cylinder_surface():
     Yc = CYL_CY + Rc * np.sin(Tc)
 
     P_top = np.stack([Xc, Yc, np.full_like(Xc, Z_MAX)], axis=-1).reshape(-1, 3)
-    P_bot = np.stack([Xc, Yc, np.full_like(Xc, Z_MIN)], axis=-1).reshape(-1, 3)
+    # 不必采样下底面，影响效率
+    # P_bot = np.stack([Xc, Yc, np.full_like(Xc, Z_MIN)], axis=-1).reshape(-1, 3)
 
-    return np.vstack([P_side, P_top, P_bot])
+    # return np.vstack([P_side, P_top, P_bot])
+    return np.vstack([P_side, P_top])
 
 def is_covered(A, B):
     """
