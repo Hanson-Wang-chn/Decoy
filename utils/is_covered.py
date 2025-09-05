@@ -12,10 +12,10 @@ CYL_CY = 200.0
 Z_MIN, Z_MAX = 0.0, 10.0
 
 # 采样密度
-SIDE_THETA = 36     # 侧面角向采样
-SIDE_Z     = 100    # 侧面高度采样
-CAP_THETA  = 36     # 上/下盖角向采样
-CAP_RADIAL = 70     # 上/下盖径向采样
+SIDE_THETA = 18     # 侧面角向采样
+SIDE_Z     = 50    # 侧面高度采样
+CAP_THETA  = 18     # 上/下盖角向采样
+CAP_RADIAL = 35     # 上/下盖径向采样
 
 _TOL = 1e-9
 
