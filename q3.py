@@ -5,7 +5,6 @@ import math
 import time
 from tqdm import tqdm
 
-# --- 让 utils.calculate_covered_time 中的 tqdm 静默（若被导入以复用工具函数） ---
 try:
     import utils.calculate_covered_time as cct_module
     def _silent_tqdm(iterable, **kwargs):
@@ -29,14 +28,15 @@ POS_INIT_MISSILE_M1 = np.array([20000.0, 0.0, 2000.0], dtype=float)
 POS_INIT_DRONE_FY1  = np.array([17800.0, 0.0, 1800.0], dtype=float)
 
 # ---- 优化算法配置 ----
-POPULATION_SIZE = 10   # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS  = 3    # 最大迭代次数
+POPULATION_SIZE = 50   # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS  = 30    # 最大迭代次数
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 8 个变量：
-# [v_drone, theta_drone, t_drop1, t_drop2, t_drop3, t_delay1, t_delay2, t_delay3]
-LOWER_BOUNDS = np.array([70.0, 0.0, 0.0,  0.0,  0.0,  0.0, 0.0, 0.0], dtype=float)
-UPPER_BOUNDS = np.array([140.0, np.pi, 60.0, 60.0, 60.0, 20.0, 20.0, 20.0], dtype=float)
+# [v_drone, theta_drone, t_drop1, t_delta_drop2, t_delta_drop3, t_delay1, t_delay2, t_delay3]
+# 修改：t_delta_drop2和t_delta_drop3表示时间间隔，必须≥1秒
+LOWER_BOUNDS = np.array([70.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+UPPER_BOUNDS = np.array([140.0, np.pi, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
 DIMENSIONS    = 8
 
 # ---- 计算三枚干扰弹的遮蔽时长（并集 + 逐枚），直接调用 is_covered ----
@@ -53,7 +53,7 @@ def calculate_covered_time_3decoys(pos_init_missile: np.ndarray,
     计算导弹被三枚烟幕云团遮挡的总时长（并集），并可返回每一枚的遮蔽时长（各自统计）。
     说明：
       - 起爆后云团中心以 SINK_SPEED 匀速下沉，存在 CLOUD_EFFECTIVE 秒的有效期。
-      - 总时长按“三枚云团遮蔽时间的并集长度”计；每枚遮蔽时长单独统计，不去除重叠。
+      - 总时长按"三枚云团遮蔽时间的并集长度"计；每枚遮蔽时长单独统计，不去除重叠。
     """
     pos_init_missile = np.asarray(pos_init_missile, dtype=float)
     pos_init_drone   = np.asarray(pos_init_drone, dtype=float)
@@ -87,7 +87,7 @@ def calculate_covered_time_3decoys(pos_init_missile: np.ndarray,
         # 每个云团是否在该时刻有效
         active = t >= t_expl_arr
 
-        # 对于“有效”的云团，计算其时刻位置并判定遮挡
+        # 对于"有效"的云团，计算其时刻位置并判定遮挡
         occluded_flags = []
         for i in range(3):
             if active[i]:
@@ -110,31 +110,31 @@ def calculate_covered_time_3decoys(pos_init_missile: np.ndarray,
         return covered_total, covered_each, (t_drop_arr, t_expl_arr, B_expl)
     return covered_total
 
-# ---- 目标函数（WOA 默认最小化，这里返回“负的并集遮蔽时长”）+ 约束惩罚 ----
+# ---- 目标函数（WOA 默认最小化，这里返回"负的并集遮蔽时长"）+ 约束惩罚 ----
 def objective_function(params, interval_eval=0.02):
     """
     目标：最大化并集遮蔽时长 -> 最小化其相反数。
-    约束（以惩罚形式）：
-      1) 0 <= t_drop[i] <= 60, 0 <= t_delay[i] <= 20 （由边界保证）
-      2) 相邻投放满足：t_drop2 - t_drop1 >= 1, t_drop3 - t_drop2 >= 1
+    参数：
+      params[0]: v_drone
+      params[1]: theta_drone
+      params[2]: t_drop1
+      params[3]: t_delta_drop2 (≥1，表示第2次与第1次投放的时间间隔)
+      params[4]: t_delta_drop3 (≥1，表示第3次与第2次投放的时间间隔)
+      params[5:8]: t_delay_arr
     """
     v_drone      = params[0]
     theta_drone  = params[1]
-    t_drop_arr   = params[2:5]
-    t_delay_arr  = params[5:8]
-
-    # 约束惩罚（违反越多，惩罚越大）
-    penalty = 0.0
-    # 投放间隔约束（至少 1s）
-    gap12 = t_drop_arr[1] - t_drop_arr[0]
-    gap23 = t_drop_arr[2] - t_drop_arr[1]
-    if gap12 < 1.0:
-        penalty += (1.0 - gap12) * 50.0
-    if gap23 < 1.0:
-        penalty += (1.0 - gap23) * 50.0
-    # 单调性（避免乱序），若乱序，额外强惩罚
-    if not (t_drop_arr[0] <= t_drop_arr[1] <= t_drop_arr[2]):
-        penalty += 200.0
+    
+    # 转换增量时间为绝对时间
+    t_drop1 = params[2]
+    t_delta_drop2 = params[3]  # 已确保 ≥ 1.0
+    t_delta_drop3 = params[4]  # 已确保 ≥ 1.0
+    
+    t_drop2 = t_drop1 + t_delta_drop2
+    t_drop3 = t_drop2 + t_delta_drop3
+    
+    t_drop_arr = np.array([t_drop1, t_drop2, t_drop3])
+    t_delay_arr = params[5:8]
 
     # 计算遮蔽并集时长（为速度，将评估步长略放宽）
     covered_total = calculate_covered_time_3decoys(
@@ -149,7 +149,7 @@ def objective_function(params, interval_eval=0.02):
         return_details=False
     )
 
-    return -(covered_total) + penalty
+    return -covered_total
 
 # ---- 鲸鱼优化算法（沿用问题2版本） ----
 class WhaleOptimizationAlgorithm:
@@ -219,57 +219,7 @@ class WhaleOptimizationAlgorithm:
                 print(f"迭代 {t + 1}/{self.max_iter}, 当前最优遮蔽时间(估计): {-self.leader_score:.4f} s")
 
         return self.leader_pos, -self.leader_score
-
-# ---- 结果写入 Excel（result1.xlsx，若无模板则自动创建一个简洁表头） ----
-def write_result_to_excel(filepath, v_opt, theta_opt,
-                          t_drop, t_expl, P_drop, P_expl,
-                          covered_each, covered_total):
-    import pandas as pd
-
-    data = {
-        "v_drone(m/s)": [v_opt],
-        "theta_drone(rad)": [theta_opt],
-        "theta_drone(deg)": [math.degrees(theta_opt)],
-        # decoy 1
-        "decoy1_t_drop(s)": [t_drop[0]],
-        "decoy1_drop_x(m)": [P_drop[0][0]],
-        "decoy1_drop_y(m)": [P_drop[0][1]],
-        "decoy1_drop_z(m)": [P_drop[0][2]],
-        "decoy1_t_expl(s)": [t_expl[0]],
-        "decoy1_expl_x(m)": [P_expl[0][0]],
-        "decoy1_expl_y(m)": [P_expl[0][1]],
-        "decoy1_expl_z(m)": [P_expl[0][2]],
-        "decoy1_covered_time(s)": [covered_each[0]],
-        # decoy 2
-        "decoy2_t_drop(s)": [t_drop[1]],
-        "decoy2_drop_x(m)": [P_drop[1][0]],
-        "decoy2_drop_y(m)": [P_drop[1][1]],
-        "decoy2_drop_z(m)": [P_drop[1][2]],
-        "decoy2_t_expl(s)": [t_expl[1]],
-        "decoy2_expl_x(m)": [P_expl[1][0]],
-        "decoy2_expl_y(m)": [P_expl[1][1]],
-        "decoy2_expl_z(m)": [P_expl[1][2]],
-        "decoy2_covered_time(s)": [covered_each[1]],
-        # decoy 3
-        "decoy3_t_drop(s)": [t_drop[2]],
-        "decoy3_drop_x(m)": [P_drop[2][0]],
-        "decoy3_drop_y(m)": [P_drop[2][1]],
-        "decoy3_drop_z(m)": [P_drop[2][2]],
-        "decoy3_t_expl(s)": [t_expl[2]],
-        "decoy3_expl_x(m)": [P_expl[2][0]],
-        "decoy3_expl_y(m)": [P_expl[2][1]],
-        "decoy3_expl_z(m)": [P_expl[2][2]],
-        "decoy3_covered_time(s)": [covered_each[2]],
-        # union
-        "covered_time_union(s)": [covered_total],
-    }
-
-    df = pd.DataFrame(data)
-    try:
-        df.to_excel(filepath, index=False)
-        print(f"\n结果已写入: {filepath}")
-    except Exception as e:
-        print(f"\n写入 Excel 失败: {e}")
+    
 
 # ---- 主函数 ----
 def main():
@@ -299,12 +249,21 @@ def main():
     print(f"总计用时: {end_time - start_time:.2f} 秒")
     print("-------------------------------------------------")
 
-    # 解包最优参数
-    v_opt         = best_params[0]
-    theta_opt     = best_params[1]
-    t_drop_opt    = np.array(best_params[2:5], dtype=float)
-    t_delay_opt   = np.array(best_params[5:8], dtype=float)
-    t_expl_opt    = t_drop_opt + t_delay_opt
+    # 解包最优参数并转换为绝对时间
+    v_opt = best_params[0]
+    theta_opt = best_params[1]
+    
+    # 计算真实的投放时间点
+    t_drop1 = best_params[2]
+    t_delta_drop2 = best_params[3]
+    t_delta_drop3 = best_params[4]
+    
+    t_drop2 = t_drop1 + t_delta_drop2
+    t_drop3 = t_drop2 + t_delta_drop3
+    
+    t_drop_opt = np.array([t_drop1, t_drop2, t_drop3], dtype=float)
+    t_delay_opt = np.array(best_params[5:8], dtype=float)
+    t_expl_opt = t_drop_opt + t_delay_opt
 
     print(f"最优无人机速度 (v_drone): {v_opt:.4f} m/s")
     print(f"最优无人机航向 (theta_drone): {theta_opt:.4f} rad ({math.degrees(theta_opt):.2f} 度)")
@@ -314,7 +273,7 @@ def main():
     print(f"估计的最大并集有效遮蔽时间: {est_max_covered:.4f} s")
     print("="*50)
 
-    # ---- 使用最优参数进行一次“精细步长”的最终仿真与验证 ----
+    # ---- 使用最优参数进行一次"精细步长"的最终仿真与验证 ----
     covered_total, covered_each, debug = calculate_covered_time_3decoys(
         pos_init_missile=POS_INIT_MISSILE_M1,
         pos_init_drone=POS_INIT_DRONE_FY1,
@@ -344,17 +303,8 @@ def main():
         print(f"  起爆点  P_expl{i+1}: ({P_expl[i,0]:.2f}, {P_expl[i,1]:.2f}, {P_expl[i,2]:.2f}) m")
         print(f"  该弹有效遮蔽时长: {covered_each[i]:.4f} s")
     print("-"*50)
-    print(f"三枚烟幕干扰弹‘并集’有效遮蔽总时长: {covered_total:.4f} s")
+    print(f"三枚烟幕干扰弹'并集'有效遮蔽总时长: {covered_total:.4f} s")
     print("-"*50)
-
-    # ---- 写出到 result1.xlsx（若需适配官方模板，可在此处按模板列名调整） ----
-    write_result_to_excel(
-        filepath="result1.xlsx",
-        v_opt=v_opt, theta_opt=theta_opt,
-        t_drop=t_drop_opt, t_expl=t_expl_opt,
-        P_drop=P_drop, P_expl=P_expl,
-        covered_each=covered_each, covered_total=covered_total
-    )
 
 
 if __name__ == "__main__":
