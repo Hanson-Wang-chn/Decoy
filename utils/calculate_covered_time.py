@@ -5,10 +5,12 @@ import numpy as np
 from tqdm import tqdm
 
 from utils.is_covered import is_covered
+# from utils.is_covered_backup import is_covered
 
 
 # ---- 常量（题面给定/默认） ----
 SPEED_MISSILE = 300.0      # 导弹速率 (m/s)
+# TODO:
 INTERVAL = 0.01            # 仿真步长 (s)
 G = 9.80                   # 重力加速度 (m/s^2)
 SINK_SPEED = 3.0           # 云团下沉速度 (m/s)
