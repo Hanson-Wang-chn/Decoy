@@ -23,8 +23,9 @@ POS_INIT_DRONE_FY1 = np.array([17800.0, 0.0, 1800.0], dtype=float)
 
 # ---- 优化算法配置 ----
 # WOA 算法参数
-POPULATION_SIZE = 50  # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS = 30   # 最大迭代次数
+# TODO:
+POPULATION_SIZE = 126  # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS = 66    # 最大迭代次数
 
 # 参数边界 (搜索空间)
 # 我们需要优化的四个变量：
@@ -94,7 +95,7 @@ class WhaleOptimizationAlgorithm:
                     self.leader_pos = self.positions[i, :].copy()
 
             # 参数 'a' 从 2 线性递减到 0
-            a = 2 - t * (2 / self.max_iter)  
+            a = 2 - t * (2 / self.max_iter)
 
             for i in range(self.pop_size):
                 r1 = np.random.rand()  # 随机数 r1 in [0,1]
@@ -102,7 +103,7 @@ class WhaleOptimizationAlgorithm:
 
                 A = 2 * a * r1 - a
                 C = 2 * r2
-                b = 1  # 定义对数螺线形状的常数
+                b = 1  # 定义对数螺线形状的常数 
                 l = (a - 1) * np.random.rand() + 1
                 p = np.random.rand()
 
@@ -189,6 +190,28 @@ def main():
         t_decoy_delay=t_delay_opt
     )
     print(covered_time)
+    
+    # 计算并输出最优条件下的投放点和起爆点坐标
+    from utils.calculate_covered_time import _drone_vec, _decoy_state_at_explosion, G
+    
+    # 计算无人机速度向量
+    v_d = _drone_vec(v_opt, theta_opt)
+    
+    # 计算投放点坐标
+    p_drop = POS_INIT_DRONE_FY1 + v_d * t_fly_opt
+    
+    # 计算起爆点坐标
+    p_explosion = _decoy_state_at_explosion(POS_INIT_DRONE_FY1, v_d, t_fly_opt, t_delay_opt)
+    
+    print("\n" + "-"*50)
+    print("最优条件下的关键位置坐标:")
+    print(f"烟幕干扰弹投放点的x坐标: {p_drop[0]:.2f} m")
+    print(f"烟幕干扰弹投放点的y坐标: {p_drop[1]:.2f} m")
+    print(f"烟幕干扰弹投放点的z坐标: {p_drop[2]:.2f} m")
+    print(f"烟幕干扰弹起爆点的x坐标: {p_explosion[0]:.2f} m")
+    print(f"烟幕干扰弹起爆点的y坐标: {p_explosion[1]:.2f} m")
+    print(f"烟幕干扰弹起爆点的z坐标: {p_explosion[2]:.2f} m")
+    print("-"*50)
 
 
 if __name__ == "__main__":
