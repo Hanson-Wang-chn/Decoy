@@ -28,8 +28,8 @@ POS_INIT_MISSILE_M1 = np.array([20000.0, 0.0, 2000.0], dtype=float)
 POS_INIT_DRONE_FY1  = np.array([17800.0, 0.0, 1800.0], dtype=float)
 
 # ---- 优化算法配置 ----
-POPULATION_SIZE = 50   # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS  = 30    # 最大迭代次数
+POPULATION_SIZE = 200   # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS  = 80    # 最大迭代次数
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 8 个变量：

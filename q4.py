@@ -42,8 +42,8 @@ POS_INIT_DRONE_FY3  = np.array([ 6000.0,-3000.0,  700.0], dtype=float)
 # ===============================
 # 优化算法（WOA）参数（与 Q2 风格一致）
 # ===============================
-POPULATION_SIZE = 50
-MAX_ITERATIONS  = 30
+POPULATION_SIZE = 300
+MAX_ITERATIONS  = 120
 
 # 对于每架无人机需要优化的 4 个变量：
 # [v_drone, theta_drone, t_drone_fly, t_decoy_delay]
