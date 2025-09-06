@@ -64,7 +64,7 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-POPULATION_SIZE = 2000  # 搜索智能体（鲸鱼）的数量
+POPULATION_SIZE = 20000  # 搜索智能体（鲸鱼）的数量
 MAX_ITERATIONS = 50      # 最大迭代次数
 EARLY_STOP_PATIENCE = 8  # 早停阈值：连续多少次迭代没有性能提升就停止
 
@@ -109,8 +109,8 @@ UPPER_BOUNDS = torch.tensor(ALL_UPPER_BOUNDS, dtype=torch.float32, device=DEVICE
 DIMENSIONS = 40  # 总维度 = 5架无人机 × 每架8个参数
 
 # 加权系数
-W_SUM_TIME = 0.2 # 所有导弹遮蔽并集时长之和
-W_MIN_TIME = 0.8 # 最低导弹遮蔽并集时长
+W_SUM_TIME = 0.7 # 所有导弹遮蔽并集时长之和
+W_MIN_TIME = 0.3 # 最低导弹遮蔽并集时长
 
 # ---- 计算多枚干扰弹对多枚导弹的遮蔽时长 - GPU优化版本 ----
 def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
