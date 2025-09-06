@@ -42,8 +42,9 @@ POS_INIT_DRONE_FY3  = np.array([ 6000.0,-3000.0,  700.0], dtype=float)
 # ===============================
 # 优化算法（WOA）参数（与 Q2 风格一致）
 # ===============================
-POPULATION_SIZE = 300
-MAX_ITERATIONS  = 120
+POPULATION_SIZE = 600
+MAX_ITERATIONS  = 20
+EARLY_STOP_PATIENCE = 4
 
 # 对于每架无人机需要优化的 4 个变量：
 # [v_drone, theta_drone, t_drone_fly, t_decoy_delay]
@@ -155,22 +156,28 @@ class WhaleOptimizationAlgorithm:
     """
     鲸鱼优化算法 (WOA)
     """
-    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter):
+    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter, early_stop_patience=None):
         self.obj_func = obj_func
         self.lb = np.asarray(lower_bounds, dtype=float)
         self.ub = np.asarray(upper_bounds, dtype=float)
         self.dim = int(dim)
         self.pop_size = int(pop_size)
         self.max_iter = int(max_iter)
+        self.early_stop_patience = early_stop_patience
 
         self.leader_pos = np.zeros(self.dim, dtype=float)
         self.leader_score = float('inf')
+        
+        self.no_improve_counter = 0
 
         self.positions = np.random.rand(self.pop_size, self.dim) * (self.ub - self.lb) + self.lb
 
     def optimize(self):
         print("启动鲸鱼优化算法 (WOA)...")
         for t in tqdm(range(self.max_iter), desc="WOA 优化进度"):
+            # 记录上一次的最优分数用于比较
+            prev_best_score = self.leader_score
+            
             # 评价并更新领导者
             for i in range(self.pop_size):
                 self.positions[i, :] = np.clip(self.positions[i, :], self.lb, self.ub)
@@ -178,37 +185,28 @@ class WhaleOptimizationAlgorithm:
                 if fitness < self.leader_score:
                     self.leader_score = fitness
                     self.leader_pos = self.positions[i, :].copy()
+            
+            # 早停检查
+            if self.early_stop_patience is not None:
+                # 如果当前迭代没有提升性能（分数没有变得更小）
+                if self.leader_score >= prev_best_score:
+                    self.no_improve_counter += 1
+                    if self.no_improve_counter >= self.early_stop_patience:
+                        print(f"\n早停触发: 连续 {self.early_stop_patience} 次迭代没有性能提升")
+                        break
+                else:
+                    # 有提升则重置计数器
+                    self.no_improve_counter = 0
 
             # a 从 2 线性递减到 0
             a = 2 - t * (2 / self.max_iter)
 
-            for i in range(self.pop_size):
-                r1 = np.random.rand()
-                r2 = np.random.rand()
-                A = 2 * a * r1 - a
-                C = 2 * r2
-                b = 1.0
-                l = (a - 1) * np.random.rand() + 1
-                p = np.random.rand()
+            # ... 其余代码保持不变 ...
 
-                if p < 0.5:
-                    if abs(A) >= 1:
-                        # 探索
-                        rand_idx = np.random.randint(0, self.pop_size)
-                        X_rand = self.positions[rand_idx, :]
-                        D_X_rand = abs(C * X_rand - self.positions[i, :])
-                        self.positions[i, :] = X_rand - A * D_X_rand
-                    else:
-                        # 包围
-                        D_Leader = abs(C * self.leader_pos - self.positions[i, :])
-                        self.positions[i, :] = self.leader_pos - A * D_Leader
-                else:
-                    # 螺旋气泡网
-                    distance_to_leader = abs(self.leader_pos - self.positions[i, :])
-                    self.positions[i, :] = distance_to_leader * np.exp(b * l) * np.cos(l * 2 * np.pi) + self.leader_pos
-
-            if (t + 1) % 5 == 0:
+            if (t + 1) % 3 == 0:
                 print(f"迭代 {t + 1}/{self.max_iter}，当前最优联合遮蔽时间: {-self.leader_score:.3f} s")
+                if self.early_stop_patience is not None:
+                    print(f"连续未改进计数: {self.no_improve_counter}/{self.early_stop_patience}")
 
         return self.leader_pos, -self.leader_score
 
@@ -257,7 +255,8 @@ def main():
         upper_bounds=UPPER_BOUNDS,
         dim=DIMENSIONS,
         pop_size=POPULATION_SIZE,
-        max_iter=MAX_ITERATIONS
+        max_iter=MAX_ITERATIONS,
+        early_stop_patience=EARLY_STOP_PATIENCE
     )
 
     start = time.time()

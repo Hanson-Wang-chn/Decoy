@@ -42,8 +42,9 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-POPULATION_SIZE = 10000   # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS = 10    # 最大迭代次数
+POPULATION_SIZE = 2000   # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS = 10      # 最大迭代次数
+EARLY_STOP_PATIENCE = 3  # 早停阈值：连续多少次迭代没有性能提升就停止
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 40 个变量：
@@ -53,8 +54,9 @@ LOWER_BOUNDS = np.tile(np.array([70.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype
 UPPER_BOUNDS = np.tile(np.array([140.0, 2*np.pi, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float), 5)
 DIMENSIONS = 40
 
-# 加权系数：强调平衡
-BETA = 0.5
+# 加权系数
+W_SUM_TIME = 0.7 # 所有导弹遮蔽并集时长之和
+W_MIN_TIME = 0.3 # 最低导弹遮蔽并集时长
 
 # ---- 计算多枚干扰弹对多枚导弹的遮蔽时长（并集 + 逐枚逐导弹） ----
 def calculate_covered_time_multi(pos_init_missiles: list,
@@ -154,10 +156,10 @@ def calculate_covered_time_multi(pos_init_missiles: list,
         return sum_union, min_union, details
     return sum_union, min_union
 
-# ---- 目标函数（WOA 默认最小化，这里返回"负的(总并集时长 + BETA * 最低并集时长)"） ----
+# ---- 目标函数（WOA 默认最小化，这里返回"负的(W_SUM_TIME * 总并集时长 + W_MIN_TIME * 最低导弹遮蔽并集时长)"） ----
 def objective_function(params, interval_eval=0.02):
     """
-    目标：最大化(所有导弹遮蔽并集时长之和 + BETA * 最低导弹遮蔽并集时长) -> 最小化其相反数。
+    目标：最大化(W_SUM_TIME * 所有导弹遮蔽并集时长之和 + W_MIN_TIME * 最低导弹遮蔽并集时长) -> 最小化其相反数。
     参数：
       params: 长度40，5架无人机各8个参数 [v, theta, t_drop1, delta2, delta3, delay1, delay2, delay3]
     """
@@ -189,24 +191,28 @@ def objective_function(params, interval_eval=0.02):
         return_details=False
     )
 
-    return - (sum_union + BETA * min_union)
+    return - (W_SUM_TIME * sum_union + W_MIN_TIME * min_union)
 
 # ---- 鲸鱼优化算法（沿用问题2版本） ----
 class WhaleOptimizationAlgorithm:
     """
     鲸鱼优化算法 (WOA) 的实现，用于寻找最优参数组合以最大化遮蔽时间。
     """
-    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter):
+    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter, early_stop_patience=None):
         self.obj_func = obj_func
         self.lb = lower_bounds
         self.ub = upper_bounds
         self.dim = dim
         self.pop_size = pop_size
         self.max_iter = max_iter
+        self.early_stop_patience = early_stop_patience
 
         # 初始化领导者（当前最优解）
         self.leader_pos = np.zeros(dim)
         self.leader_score = float('inf')  # 初始最优评价值设为无穷大
+        
+        # 早停相关变量
+        self.no_improve_counter = 0
 
         # 初始化所有搜索智能体（鲸鱼）的位置
         self.positions = np.random.rand(pop_size, dim) * (self.ub - self.lb) + self.lb
@@ -218,6 +224,9 @@ class WhaleOptimizationAlgorithm:
         print("启动鲸鱼优化算法（问题5：5架无人机对3枚导弹）...")
 
         for t in tqdm(range(self.max_iter), desc="WOA 优化进度"):
+            # 记录上一次的最优分数用于比较
+            prev_best_score = self.leader_score
+            
             # 评估 + 更新领导者
             for i in range(self.pop_size):
                 self.positions[i, :] = np.clip(self.positions[i, :], self.lb, self.ub)
@@ -225,6 +234,18 @@ class WhaleOptimizationAlgorithm:
                 if fitness < self.leader_score:
                     self.leader_score = fitness
                     self.leader_pos = self.positions[i, :].copy()
+            
+            # 早停检查
+            if self.early_stop_patience is not None:
+                # 如果当前迭代没有提升性能（分数没有变得更小）
+                if self.leader_score >= prev_best_score:
+                    self.no_improve_counter += 1
+                    if self.no_improve_counter >= self.early_stop_patience:
+                        print(f"\n早停触发: 连续 {self.early_stop_patience} 次迭代没有性能提升")
+                        break
+                else:
+                    # 有提升则重置计数器
+                    self.no_improve_counter = 0
 
             # a 从 2 线性递减到 0
             a = 2 - t * (2 / self.max_iter)
@@ -257,6 +278,8 @@ class WhaleOptimizationAlgorithm:
 
             if (t + 1) % 1 == 0:
                 print(f"迭代 {t + 1}/{self.max_iter}, 当前最优目标值(估计): {-self.leader_score:.4f}")
+                if self.early_stop_patience is not None:
+                    print(f"连续未改进计数: {self.no_improve_counter}/{self.early_stop_patience}")
 
         return self.leader_pos, -self.leader_score
 

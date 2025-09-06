@@ -24,8 +24,8 @@ POS_INIT_DRONE_FY1 = np.array([17800.0, 0.0, 1800.0], dtype=float)
 # ---- 优化算法配置 ----
 # WOA 算法参数
 # TODO:
-POPULATION_SIZE = 2000  # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS = 5    # 最大迭代次数
+POPULATION_SIZE = 200  # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS = 50    # 最大迭代次数
 
 # 参数边界 (搜索空间)
 # 我们需要优化的四个变量：

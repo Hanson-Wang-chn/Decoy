@@ -28,8 +28,9 @@ POS_INIT_MISSILE_M1 = np.array([20000.0, 0.0, 2000.0], dtype=float)
 POS_INIT_DRONE_FY1  = np.array([17800.0, 0.0, 1800.0], dtype=float)
 
 # ---- 优化算法配置 ----
-POPULATION_SIZE = 200   # 搜索智能体（鲸鱼）的数量
-MAX_ITERATIONS  = 80    # 最大迭代次数
+POPULATION_SIZE = 400   # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS  = 30    # 最大迭代次数
+EARLY_STOP_PATIENCE = 5  # 早停阈值：连续多少次迭代没有性能提升就停止
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 8 个变量：
@@ -156,13 +157,14 @@ class WhaleOptimizationAlgorithm:
     """
     鲸鱼优化算法 (WOA) 的实现，用于寻找最优参数组合以最大化遮蔽时间。
     """
-    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter):
+    def __init__(self, obj_func, lower_bounds, upper_bounds, dim, pop_size, max_iter, early_stop_patience=None):
         self.obj_func = obj_func
         self.lb = lower_bounds
         self.ub = upper_bounds
         self.dim = dim
         self.pop_size = pop_size
         self.max_iter = max_iter
+        self.early_stop_patience = early_stop_patience
 
         # 初始化领导者（当前最优解）
         self.leader_pos = np.zeros(dim)
@@ -170,6 +172,10 @@ class WhaleOptimizationAlgorithm:
 
         # 初始化所有搜索智能体（鲸鱼）的位置
         self.positions = np.random.rand(pop_size, dim) * (self.ub - self.lb) + self.lb
+        
+        # 早停相关变量
+        self.no_improve_counter = 0
+        self.best_score_history = float('inf')
 
     def optimize(self):
         """
@@ -178,6 +184,9 @@ class WhaleOptimizationAlgorithm:
         print("启动鲸鱼优化算法（问题3：3枚干扰弹）...")
 
         for t in tqdm(range(self.max_iter), desc="WOA 优化进度"):
+            # 记录上一次的最优分数用于比较
+            prev_best_score = self.leader_score
+            
             # 评估 + 更新领导者
             for i in range(self.pop_size):
                 self.positions[i, :] = np.clip(self.positions[i, :], self.lb, self.ub)
@@ -185,6 +194,18 @@ class WhaleOptimizationAlgorithm:
                 if fitness < self.leader_score:
                     self.leader_score = fitness
                     self.leader_pos = self.positions[i, :].copy()
+            
+            # 早停检查
+            if self.early_stop_patience is not None:
+                # 如果当前迭代没有提升性能（分数没有变得更小）
+                if self.leader_score >= prev_best_score:
+                    self.no_improve_counter += 1
+                    if self.no_improve_counter >= self.early_stop_patience:
+                        print(f"\n早停触发: 连续 {self.early_stop_patience} 次迭代没有性能提升")
+                        break
+                else:
+                    # 有提升则重置计数器
+                    self.no_improve_counter = 0
 
             # a 从 2 线性递减到 0
             a = 2 - t * (2 / self.max_iter)
@@ -215,8 +236,10 @@ class WhaleOptimizationAlgorithm:
                     distance_to_leader = abs(self.leader_pos - self.positions[i, :])
                     self.positions[i, :] = distance_to_leader * np.exp(b * l) * np.cos(l * 2 * np.pi) + self.leader_pos
 
-            if (t + 1) % 5 == 0:
+            if (t + 1) % 3 == 0:
                 print(f"迭代 {t + 1}/{self.max_iter}, 当前最优遮蔽时间(估计): {-self.leader_score:.4f} s")
+                if self.early_stop_patience is not None:
+                    print(f"连续未改进计数: {self.no_improve_counter}/{self.early_stop_patience}")
 
         return self.leader_pos, -self.leader_score
     
@@ -236,7 +259,8 @@ def main():
         upper_bounds=UPPER_BOUNDS,
         dim=DIMENSIONS,
         pop_size=POPULATION_SIZE,
-        max_iter=MAX_ITERATIONS
+        max_iter=MAX_ITERATIONS,
+        early_stop_patience=EARLY_STOP_PATIENCE
     )
 
     start_time = time.time()
