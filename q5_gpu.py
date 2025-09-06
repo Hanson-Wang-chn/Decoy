@@ -64,17 +64,49 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-POPULATION_SIZE = 10000  # 搜索智能体（鲸鱼）的数量
+POPULATION_SIZE = 2000  # 搜索智能体（鲸鱼）的数量
 MAX_ITERATIONS = 50      # 最大迭代次数
 EARLY_STOP_PATIENCE = 8  # 早停阈值：连续多少次迭代没有性能提升就停止
 
 # ---- 参数边界 (搜索空间) ----
-# 对于每架无人机： [v_drone, theta_drone, t_drop1, t_delta_drop2, t_delta_drop3, t_delay1, t_delay2, t_delay3]
-LOWER_BOUNDS = torch.tensor(np.tile(np.array([70.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float), 5), 
-                           dtype=torch.float32, device=DEVICE)
-UPPER_BOUNDS = torch.tensor(np.tile(np.array([140.0, 2*np.pi, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float), 5), 
-                           dtype=torch.float32, device=DEVICE)
-DIMENSIONS = 40
+# 为每架无人机分别定义参数边界
+
+# 参数边界模板：[v_drone, theta_drone, t_drop1, t_delta_drop2, t_delta_drop3, t_delay1, t_delay2, t_delay3]
+
+PI = np.pi
+
+# FY1 参数边界
+FY1_LOWER_BOUNDS = np.array([70.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+FY1_UPPER_BOUNDS = np.array([140.0, 2 * PI, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
+
+# FY2 参数边界
+FY2_LOWER_BOUNDS = np.array([70.0, 37 / 36 * PI, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+FY2_UPPER_BOUNDS = np.array([140.0, 71 / 36 * PI, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
+
+# FY3 参数边界
+FY3_LOWER_BOUNDS = np.array([70.0, 1 / 36 * PI, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+FY3_UPPER_BOUNDS = np.array([140.0, 5 / 6 * PI, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
+
+# FY4 参数边界
+FY4_LOWER_BOUNDS = np.array([70.0, 47 / 45 * PI, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+FY4_UPPER_BOUNDS = np.array([140.0, 353 / 180 * PI, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
+
+# FY5 参数边界
+FY5_LOWER_BOUNDS = np.array([70.0, 23 / 180 * PI, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0], dtype=float)
+FY5_UPPER_BOUNDS = np.array([140.0, 19 / 20 * PI, 58.0, 59.0, 59.0, 20.0, 20.0, 20.0], dtype=float)
+
+# 合并所有无人机的边界
+ALL_LOWER_BOUNDS = np.concatenate([
+    FY1_LOWER_BOUNDS, FY2_LOWER_BOUNDS, FY3_LOWER_BOUNDS, FY4_LOWER_BOUNDS, FY5_LOWER_BOUNDS
+])
+ALL_UPPER_BOUNDS = np.concatenate([
+    FY1_UPPER_BOUNDS, FY2_UPPER_BOUNDS, FY3_UPPER_BOUNDS, FY4_UPPER_BOUNDS, FY5_UPPER_BOUNDS
+])
+
+# 转换为PyTorch张量
+LOWER_BOUNDS = torch.tensor(ALL_LOWER_BOUNDS, dtype=torch.float32, device=DEVICE)
+UPPER_BOUNDS = torch.tensor(ALL_UPPER_BOUNDS, dtype=torch.float32, device=DEVICE)
+DIMENSIONS = 40  # 总维度 = 5架无人机 × 每架8个参数
 
 # 加权系数
 W_SUM_TIME = 0.2 # 所有导弹遮蔽并集时长之和
