@@ -42,9 +42,9 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-# POPULATION_SIZE = 2000   # 搜索智能体（鲸鱼）的数量
-# MAX_ITERATIONS = 10      # 最大迭代次数
-# EARLY_STOP_PATIENCE = 3  # 早停阈值：连续多少次迭代没有性能提升就停止
+POPULATION_SIZE = 200   # 搜索智能体（鲸鱼）的数量
+MAX_ITERATIONS = 20      # 最大迭代次数
+EARLY_STOP_PATIENCE = 5  # 早停阈值：连续多少次迭代没有性能提升就停止
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 40 个变量：
