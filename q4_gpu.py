@@ -65,7 +65,7 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3]
 # ===============================
 POPULATION_SIZE = 600
 MAX_ITERATIONS  = 30
-EARLY_STOP_PATIENCE = 5
+EARLY_STOP_PATIENCE = 8
 
 # 对于每架无人机需要优化的 4 个变量：
 # [v_drone, theta_drone, t_drone_fly, t_decoy_delay]

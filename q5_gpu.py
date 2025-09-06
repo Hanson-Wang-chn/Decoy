@@ -77,8 +77,8 @@ UPPER_BOUNDS = torch.tensor(np.tile(np.array([140.0, 2*np.pi, 58.0, 59.0, 59.0, 
 DIMENSIONS = 40
 
 # 加权系数
-W_SUM_TIME = 0.7 # 所有导弹遮蔽并集时长之和
-W_MIN_TIME = 0.3 # 最低导弹遮蔽并集时长
+W_SUM_TIME = 0.2 # 所有导弹遮蔽并集时长之和
+W_MIN_TIME = 0.8 # 最低导弹遮蔽并集时长
 
 # ---- 计算多枚干扰弹对多枚导弹的遮蔽时长 - GPU优化版本 ----
 def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
