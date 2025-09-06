@@ -71,11 +71,17 @@ EARLY_STOP_PATIENCE = 5
 # [v_drone, theta_drone, t_drone_fly, t_decoy_delay]
 # 速度：70~140 m/s；航向：0~pi；投放时间：0~60 s；起爆延迟：0~20 s
 LB_1 = torch.tensor([70.0, 0.0, 0.0, 0.0], dtype=torch.float32, device=DEVICE)
-UB_1 = torch.tensor([140.0, 2 * math.pi, 60.0, 20.0], dtype=torch.float32, device=DEVICE)
+UB_1 = torch.tensor([140.0, math.pi, 60.0, 20.0], dtype=torch.float32, device=DEVICE)
+
+LB_2 = torch.tensor([70.0, math.pi, 0.0, 0.0], dtype=torch.float32, device=DEVICE)
+UB_2 = torch.tensor([140.0, 2 * math.pi, 60.0, 20.0], dtype=torch.float32, device=DEVICE)
+
+LB_3 = torch.tensor([70.0, 0.0, 0.0, 0.0], dtype=torch.float32, device=DEVICE)
+UB_3 = torch.tensor([140.0, 5 / 6 * math.pi, 60.0, 20.0], dtype=torch.float32, device=DEVICE)
 
 # 三架无人机，总维度 12
-LOWER_BOUNDS = torch.cat([LB_1, LB_1, LB_1])
-UPPER_BOUNDS = torch.cat([UB_1, UB_1, UB_1])
+LOWER_BOUNDS = torch.cat([LB_1, LB_2, LB_3])
+UPPER_BOUNDS = torch.cat([UB_1, UB_2, UB_3])
 DIMENSIONS = LOWER_BOUNDS.size(0)
 
 

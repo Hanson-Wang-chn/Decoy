@@ -42,19 +42,25 @@ POS_INIT_DRONE_FY3  = np.array([ 6000.0,-3000.0,  700.0], dtype=float)
 # ===============================
 # 优化算法（WOA）参数（与 Q2 风格一致）
 # ===============================
-POPULATION_SIZE = 20
-MAX_ITERATIONS  = 20
-EARLY_STOP_PATIENCE = 4
+POPULATION_SIZE = 600
+MAX_ITERATIONS  = 30
+EARLY_STOP_PATIENCE = 5
 
 # 对于每架无人机需要优化的 4 个变量：
 # [v_drone, theta_drone, t_drone_fly, t_decoy_delay]
 # 速度：70~140 m/s；航向：0~pi；投放时间：0~60 s；起爆延迟：0~20 s
 LB_1 = np.array([70.0, 0.0, 0.0, 0.0], dtype=float)
-UB_1 = np.array([140.0, 2 * math.pi, 60.0, 20.0], dtype=float)
+UB_1 = np.array([140.0, math.pi, 60.0, 20.0], dtype=float)
+
+LB_2 = np.array([70.0, math.pi, 0.0, 0.0], dtype=float)
+UB_2 = np.array([140.0, 2 * math.pi, 60.0, 20.0], dtype=float)
+
+LB_3 = np.array([70.0, 0.0, 0.0, 0.0], dtype=float)
+UB_3 = np.array([140.0, 5 / 6 * math.pi, 60.0, 20.0], dtype=float)
 
 # 三架无人机，总维度 12
-LOWER_BOUNDS = np.hstack([LB_1, LB_1, LB_1])
-UPPER_BOUNDS = np.hstack([UB_1, UB_1, UB_1])
+LOWER_BOUNDS = np.hstack([LB_1, LB_2, LB_3])
+UPPER_BOUNDS = np.hstack([UB_1, UB_2, UB_3])
 DIMENSIONS   = LOWER_BOUNDS.size
 
 
