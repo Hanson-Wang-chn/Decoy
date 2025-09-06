@@ -42,9 +42,13 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-POPULATION_SIZE = 2000   # 搜索智能体（鲸鱼）的数量
+# POPULATION_SIZE = 2000   # 搜索智能体（鲸鱼）的数量
+# MAX_ITERATIONS = 10      # 最大迭代次数
+# EARLY_STOP_PATIENCE = 3  # 早停阈值：连续多少次迭代没有性能提升就停止
+
+POPULATION_SIZE = 20   # 搜索智能体（鲸鱼）的数量
 MAX_ITERATIONS = 10      # 最大迭代次数
-EARLY_STOP_PATIENCE = 3  # 早停阈值：连续多少次迭代没有性能提升就停止
+EARLY_STOP_PATIENCE = 5  # 早停阈值：连续多少次迭代没有性能提升就停止
 
 # ---- 参数边界 (搜索空间) ----
 # 我们需要优化的 40 个变量：
@@ -383,32 +387,6 @@ def main():
     print(f"所有导弹并集有效遮蔽总时长: {sum_union:.4f} s")
     print(f"最低导弹并集有效遮蔽时长: {min_union:.4f} s")
     print("-"*50)
-
-    # ---- 保存到 result3.xlsx ----
-    headers = [
-        "无人机编号", "无人机运动方向", "无人机运动速度 (m/s)", "烟幕干扰弹编号",
-        "烟幕干扰弹投放点的x坐标 (m)", "烟幕干扰弹投放点的y坐标 (m)", "烟幕干扰弹投放点的z坐标 (m)",
-        "烟幕干扰弹起爆点的x坐标 (m)", "烟幕干扰弹起爆点的y坐标 (m)", "烟幕干扰弹起爆点的z坐标 (m)",
-        "有效干扰时长 (s)", "干扰的导弹编号"
-    ]
-    rows = []
-
-    for d_id in range(5):
-        direction_deg = math.degrees(theta_opts[d_id]) % 360
-        speed = v_opts[d_id]
-        for i in range(3):
-            decoy_id = d_id * 3 + i
-            row = [
-                labels[d_id], direction_deg, speed, i+1,
-                all_p_drop[decoy_id, 0], all_p_drop[decoy_id, 1], all_p_drop[decoy_id, 2],
-                all_p_expl[decoy_id, 0], all_p_expl[decoy_id, 1], all_p_expl[decoy_id, 2],
-                effective_times[decoy_id], assigned_missiles[decoy_id]
-            ]
-            rows.append(row)
-
-    # 添加空行和注
-    rows.append([None] * len(headers))
-    rows.append([None, "注：以x轴为正向，逆时针方向为正，取值0~360（度）。"] + [None] * (len(headers) - 2))
 
 
 if __name__ == "__main__":
