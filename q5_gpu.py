@@ -64,7 +64,7 @@ POS_INIT_DRONES = [POS_INIT_DRONE_FY1, POS_INIT_DRONE_FY2, POS_INIT_DRONE_FY3, P
 
 # ---- 优化算法配置 ----
 # TODO:
-POPULATION_SIZE = 1   # 搜索智能体（鲸鱼）的数量
+POPULATION_SIZE = 200   # 搜索智能体（鲸鱼）的数量
 MAX_ITERATIONS = 10      # 最大迭代次数
 EARLY_STOP_PATIENCE = 5  # 早停阈值：连续多少次迭代没有性能提升就停止
 
@@ -87,7 +87,7 @@ def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
                                 interval=INTERVAL, show_progress=False,
                                 return_details=False, device=DEVICE):
     """
-    GPU优化版：计算多枚导弹被所有烟幕云团遮挡的总时长
+    GPU优化版：计算多枚导弹被所有烟幕云团遮挡的总时长 (完全向量化)
     """
     num_missiles = len(pos_init_missiles)
     num_drones = len(pos_init_drones)
@@ -95,10 +95,10 @@ def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
     num_decoys = num_drones * num_decoys_per_drone
 
     # 收集所有干扰弹的信息
-    all_t_expl = []
-    all_p_expl = []
-    all_p_drop = []
-    all_t_drop = []
+    all_t_expl_list = []
+    all_p_expl_list = []
+    all_p_drop_list = []
+    all_t_drop_list = []
 
     for d_id in range(num_drones):
         pos_drone = pos_init_drones[d_id]
@@ -114,14 +114,15 @@ def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
             p_drop = pos_drone + v_d * t_drop
             p_expl = _decoy_state_at_explosion(pos_drone, v_d, t_drop, t_delay, device=device)
 
-            all_t_drop.append(t_drop)
-            all_t_expl.append(t_expl)
-            all_p_drop.append(p_drop)
-            all_p_expl.append(p_expl)
+            all_t_drop_list.append(t_drop)
+            all_t_expl_list.append(t_expl)
+            all_p_drop_list.append(p_drop)
+            all_p_expl_list.append(p_expl)
 
-    all_t_expl = torch.tensor(all_t_expl, dtype=torch.float32, device=device)
-    all_p_expl = torch.stack(all_p_expl)
-    all_p_drop = torch.stack(all_p_drop)
+    all_t_expl = torch.stack(all_t_expl_list) # [15]
+    all_p_expl = torch.stack(all_p_expl_list) # [15, 3]
+    all_p_drop = torch.stack(all_p_drop_list) # [15, 3]
+    all_t_drop = torch.stack(all_t_drop_list) # [15]
 
     # 对于每枚导弹，独立仿真其遮蔽情况
     union_times = torch.zeros(num_missiles, dtype=torch.float32, device=device)
@@ -130,58 +131,55 @@ def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
     for m_id in range(num_missiles):
         pos_missile = pos_init_missiles[m_id]
         t_hit = torch.norm(pos_missile) / SPEED_MISSILE
-        times = torch.arange(0.0, t_hit.item() + 1e-9, interval, dtype=torch.float32, device=device)
-        iterator = tqdm(times, desc=f"Simulating missile M{m_id+1} (GPU)", unit="step") if show_progress else times
-
-        covered_union = 0.0
-        covered_per_decoy = torch.zeros(num_decoys, dtype=torch.float32, device=device)
-
-        # 预计算所有时间点的导弹位置（批量计算加速）
-        A_all = _missile_pos(pos_missile, times, device=device)
+        times = torch.arange(0.0, t_hit.item() + 1e-9, interval, dtype=torch.float32, device=device) # [T]
         
-        # 处理批次以避免内存溢出
-        batch_size = 512  # 可根据GPU内存调整
-        num_batches = (len(times) + batch_size - 1) // batch_size
-        
-        for batch_idx in range(num_batches):
-            start_idx = batch_idx * batch_size
-            end_idx = min(start_idx + batch_size, len(times))
-            
-            batch_times = times[start_idx:end_idx]
-            A_batch = A_all[start_idx:end_idx]
-            
-            # 初始化此批次的遮挡标志
-            occluded_flags = torch.zeros((end_idx-start_idx, num_decoys), dtype=torch.bool, device=device)
-            
-            # 对每个干扰弹检查遮挡
-            for d_id in range(num_decoys):
-                # 找出在此干扰弹有效期内的时间点
-                mask = (batch_times >= all_t_expl[d_id]) & (batch_times < all_t_expl[d_id] + CLOUD_EFFECTIVE)
-                if not torch.any(mask):
-                    continue
-                    
-                valid_idx = torch.where(mask)[0]
-                valid_times = batch_times[valid_idx]
-                valid_A = A_batch[valid_idx]
-                
-                # 计算云团位置
-                dt = valid_times - all_t_expl[d_id]
-                sink_offset = torch.zeros((len(valid_idx), 3), device=device)
-                sink_offset[:, 2] = -SINK_SPEED * dt
-                B_t = all_p_expl[d_id] + sink_offset
-                
-                # 逐点判断遮挡
-                for i, idx in enumerate(valid_idx):
-                    if is_covered(valid_A[i], B_t[i], device=device):
-                        occluded_flags[idx, d_id] = True
-                        covered_per_decoy[d_id] += interval
-            
-            # 任一干扰弹遮挡即算遮挡
-            any_occluded = torch.any(occluded_flags, dim=1)
-            covered_union += torch.sum(any_occluded).item() * interval
+        if show_progress:
+            print(f"Simulating missile M{m_id+1} (GPU Vectorized)... {len(times)} steps.")
 
-        union_times[m_id] = covered_union
-        per_decoy_per_missile[m_id] = covered_per_decoy
+        # 预计算所有时间点的导弹位置
+        A_t = _missile_pos(pos_missile, times, device=device) # [T, 3]
+
+        # [T, 15] 每一行是一个时间点，每一列是一个干扰弹
+        occluded_matrix = torch.zeros(len(times), num_decoys, dtype=torch.bool, device=device)
+
+        # 向量化计算所有干扰弹的遮挡情况
+        # [1, 15]
+        t_expl_exp = all_t_expl.unsqueeze(0)
+        # [T, 1]
+        times_exp = times.unsqueeze(1)
+        
+        # [T, 15] bool, 标记每个时间点，每个干扰弹是否在其有效期内
+        valid_time_mask = (times_exp >= t_expl_exp) & (times_exp < t_expl_exp + CLOUD_EFFECTIVE)
+        
+        # 获取所有有效时间点的索引 [N_valid, 2], N_valid是所有有效(t, decoy)对的数量
+        valid_indices = torch.where(valid_time_mask)
+        time_indices, decoy_indices = valid_indices
+        
+        if time_indices.numel() > 0:
+            # 提取所有有效的 A, B, t
+            valid_A = A_t[time_indices] # [N_valid, 3]
+            valid_t = times[time_indices] # [N_valid]
+            valid_decoy_expl_t = all_t_expl[decoy_indices] # [N_valid]
+            valid_decoy_expl_p = all_p_expl[decoy_indices] # [N_valid, 3]
+            
+            # 批量计算云团位置
+            dt = valid_t - valid_decoy_expl_t # [N_valid]
+            sink_offset = torch.zeros_like(valid_decoy_expl_p)
+            sink_offset[:, 2] = -SINK_SPEED * dt
+            valid_B = valid_decoy_expl_p + sink_offset # [N_valid, 3]
+            
+            # *** 核心：一次性调用向量化的is_covered ***
+            is_covered_results = is_covered(valid_A, valid_B, device=device) # [N_valid]
+            
+            # 将结果填充回遮挡矩阵
+            occluded_matrix[time_indices, decoy_indices] = is_covered_results
+
+        # 计算每个干扰弹的单独遮蔽时长
+        per_decoy_per_missile[m_id] = torch.sum(occluded_matrix, dim=0) * interval
+        
+        # 计算并集遮蔽时长
+        any_occluded = torch.any(occluded_matrix, dim=1)
+        union_times[m_id] = torch.sum(any_occluded) * interval
 
     sum_union = torch.sum(union_times).item()
     min_union = torch.min(union_times).item()
@@ -195,7 +193,7 @@ def calculate_covered_time_multi(pos_init_missiles, pos_init_drones,
             "per_decoy_per_missile": per_decoy_per_missile.cpu().numpy(),
             "all_p_drop": all_p_drop.cpu().numpy(),
             "all_p_expl": all_p_expl.cpu().numpy(),
-            "all_t_drop": torch.tensor(all_t_drop, dtype=torch.float32).cpu().numpy(),
+            "all_t_drop": all_t_drop.cpu().numpy(),
             "all_t_expl": all_t_expl.cpu().numpy()
         }
         return sum_union, min_union, details
