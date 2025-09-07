@@ -119,53 +119,105 @@ drone_pos0 = {
 # t_drop_5_3 = 100.0
 # t_explode_5_3 = 100.0
 
+# # TODO:
+# theta_drone_1 = 7.45  # 0.13弧度转换为度数
+# v_drone_1 = 72.00
+# t_drop_1_1 = 0.00
+# t_explode_1_1 = 0.00
+# t_drop_1_2 = 1.00
+# t_explode_1_2 = 1.45  # 1.00 + 0.45
+# t_drop_1_3 = 18.51
+# t_explode_1_3 = 19.34  # 18.51 + 0.83
+
+# theta_drone_2 = 295.09  # 5.15弧度转换为度数
+# v_drone_2 = 127.02
+# t_drop_2_1 = 7.91
+# t_explode_2_1 = 8.52  # 7.91 + 0.61
+# t_drop_2_2 = 13.14
+# t_explode_2_2 = 15.82  # 13.14 + 2.68
+# t_drop_2_3 = 25.33
+# t_explode_2_3 = 32.65  # 25.33 + 7.32
+
+# theta_drone_3 = 79.63  # 1.39弧度转换为度数
+# v_drone_3 = 82.34
+# t_drop_3_1 = 33.91
+# t_explode_3_1 = 34.43  # 33.91 + 0.52
+# t_drop_3_2 = 34.91
+# t_explode_3_2 = 37.49  # 34.91 + 2.58
+# t_drop_3_3 = 35.91
+# t_explode_3_3 = 38.14  # 35.91 + 2.23
+
+# theta_drone_4 = 0.00  # 0.00弧度转换为度数
+# v_drone_4 = 70.00
+# t_drop_4_1 = 0.92
+# t_explode_4_1 = 1.42  # 0.92 + 0.50
+# t_drop_4_2 = 1.92
+# t_explode_4_2 = 3.26  # 1.92 + 1.34
+# t_drop_4_3 = 2.92
+# t_explode_4_3 = 3.42  # 2.92 + 0.50
+
+# theta_drone_5 = 120.32  # 2.10弧度转换为度数
+# v_drone_5 = 104.78
+# t_drop_5_1 = 16.04
+# t_explode_5_1 = 17.69  # 16.04 + 1.65
+# t_drop_5_2 = 17.59
+# t_explode_5_2 = 22.28  # 17.59 + 4.69
+# t_drop_5_3 = 21.57
+# t_explode_5_3 = 23.46  # 21.57 + 1.89
+
+# Sum of total covered time: 17.95 s
+# Minimum covered time: 3.83 s
+# Weighted covered time: 13.71 s
+
 # TODO:
-theta_drone_1 = 7.45  # 0.13弧度转换为度数
-v_drone_1 = 72.00
+theta_drone_1 = 7.44
+v_drone_1 = 72.07
 t_drop_1_1 = 0.00
 t_explode_1_1 = 0.00
 t_drop_1_2 = 1.00
-t_explode_1_2 = 1.45  # 1.00 + 0.45
-t_drop_1_3 = 18.51
-t_explode_1_3 = 19.34  # 18.51 + 0.83
+t_explode_1_2 = 1.39
+t_drop_1_3 = 18.75
+t_explode_1_3 = 20.39
 
-theta_drone_2 = 295.09  # 5.15弧度转换为度数
-v_drone_2 = 127.02
-t_drop_2_1 = 7.91
-t_explode_2_1 = 8.52  # 7.91 + 0.61
-t_drop_2_2 = 13.14
-t_explode_2_2 = 15.82  # 13.14 + 2.68
-t_drop_2_3 = 25.33
-t_explode_2_3 = 32.65  # 25.33 + 7.32
+theta_drone_2 = 295.12
+v_drone_2 = 127.06
+t_drop_2_1 = 7.90
+t_explode_2_1 = 8.51
+t_drop_2_2 = 13.16
+t_explode_2_2 = 15.82
+t_drop_2_3 = 26.29
+t_explode_2_3 = 35.61
 
-theta_drone_3 = 79.63  # 1.39弧度转换为度数
-v_drone_3 = 82.34
-t_drop_3_1 = 33.91
-t_explode_3_1 = 34.43  # 33.91 + 0.52
-t_drop_3_2 = 34.91
-t_explode_3_2 = 37.49  # 34.91 + 2.58
-t_drop_3_3 = 35.91
-t_explode_3_3 = 38.14  # 35.91 + 2.23
+theta_drone_3 = 79.59
+v_drone_3 = 82.48
+t_drop_3_1 = 33.93
+t_explode_3_1 = 34.43
+t_drop_3_2 = 34.90
+t_explode_3_2 = 37.37
+t_drop_3_3 = 40.90
+t_explode_3_3 = 41.23
 
-theta_drone_4 = 0.00  # 0.00弧度转换为度数
-v_drone_4 = 70.00
-t_drop_4_1 = 0.92
-t_explode_4_1 = 1.42  # 0.92 + 0.50
-t_drop_4_2 = 1.92
-t_explode_4_2 = 3.26  # 1.92 + 1.34
-t_drop_4_3 = 2.92
-t_explode_4_3 = 3.42  # 2.92 + 0.50
+theta_drone_4 = 52.01
+v_drone_4 = 119.38
+t_drop_4_1 = 0.99
+t_explode_4_1 = 1.46
+t_drop_4_2 = 1.95
+t_explode_4_2 = 4.84
+t_drop_4_3 = 2.71
+t_explode_4_3 = 10.52
 
-theta_drone_5 = 120.32  # 2.10弧度转换为度数
-v_drone_5 = 104.78
-t_drop_5_1 = 16.04
-t_explode_5_1 = 17.69  # 16.04 + 1.65
-t_drop_5_2 = 17.59
-t_explode_5_2 = 22.28  # 17.59 + 4.69
-t_drop_5_3 = 21.57
-t_explode_5_3 = 23.46  # 21.57 + 1.89
+theta_drone_5 = 120.20
+v_drone_5 = 104.63
+t_drop_5_1 = 15.57
+t_explode_5_1 = 17.69
+t_drop_5_2 = 17.50
+t_explode_5_2 = 22.28
+t_drop_5_3 = 23.75
+t_explode_5_3 = 24.64
+
 
 time_sum = 0.0
+time_arr = []
 
 # Main simulation
 for m_name, m_pos0 in missile_pos0.items():
@@ -248,5 +300,8 @@ for m_name, m_pos0 in missile_pos0.items():
     print()
     
     time_sum += total_dur
+    time_arr.append(total_dur)
 
 print(f"Sum of total covered time: {time_sum:.2f} s")
+print(f"Minimum covered time: {min(time_arr):.2f} s")
+print(f"Weighted covered time: {0.7 * time_sum + 0.3 * min(time_arr):.2f} s")
