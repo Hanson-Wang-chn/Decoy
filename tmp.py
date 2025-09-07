@@ -89,3 +89,77 @@ t_drop_5_2 = 16.2015
 t_explode_5_2 = 19.6596
 t_drop_5_3 = 28.8745
 t_explode_5_3 = 34.1075
+
+
+# TODO:
+theta_drone_1 = -180.00
+v_drone_1 = 70.00
+t_drop_1_1 = 1.000
+t_explode_1_1 = 4.000
+t_drop_1_2 = 2.400
+t_explode_1_2 = 6.000
+t_drop_1_3 = 4.400
+t_explode_1_3 = 8.000
+
+theta_drone_2 = -90.00
+v_drone_2 = 100.00
+t_drop_2_1 = 7.000
+t_explode_2_1 = 10.000
+t_drop_2_2 = 100.0
+t_explode_2_2 = 100.0
+t_drop_2_3 = 100.0
+t_explode_2_3 = 100.0
+
+theta_drone_3 = 90.00
+v_drone_3 = 130.00
+t_drop_3_1 = 19.000
+t_explode_3_1 = 22.000
+t_drop_3_2 = 100.0
+t_explode_3_2 = 100.0
+t_drop_3_3 = 100.0
+t_explode_3_3 = 100.0
+
+theta_drone_4 = 0.00
+v_drone_4 = 0.00
+t_drop_4_1 = 100.0
+t_explode_4_1 = 100.0
+t_drop_4_2 = 100.0
+t_explode_4_2 = 100.0
+t_drop_4_3 = 100.0
+t_explode_4_3 = 100.0
+
+theta_drone_5 = 0.00
+v_drone_5 = 0.00
+t_drop_5_1 = 100.0
+t_explode_5_1 = 100.0
+t_drop_5_2 = 100.0
+t_explode_5_2 = 100.0
+t_drop_5_3 = 100.0
+t_explode_5_3 = 100.0
+
+
+# TODO:
+theta_drone_deg = {
+    1: 5.69,   # FY1 航向
+    2: 243.61,   # FY2 航向
+    3: 103.86,   # FY3 航向
+}
+# 无人机速度（m/s, 要求 70~140）
+v_drone = {
+    1: 107.43,   # FY1 速度
+    2: 78.14,   # FY2 速度
+    3: 117.89,   # FY3 速度
+}
+# 投放时间（s，自 t=0 起计）
+t_drone_fly = {
+    1: 0.72,   # FY1 投放时间
+    2: 12.34,   # FY2 投放时间
+    3: 21.50,   # FY3 投放时间
+}
+# 可选：时间引信延迟（s），起爆时间 = 投放时间 + 引信延迟。
+# 若不需要延迟，保持 0.0 即"投放即起爆"。
+t_fuze = {
+    1: 0.33,    # FY1 延迟
+    2: 7.25,    # FY2 延迟
+    3: 5.49,    # FY3 延迟
+}
